@@ -70,6 +70,8 @@ describe("ThrottleUntilSome testsuite", () => {
         })
         .pipe(throttleUntilSome(3, 15, m.scheduler));
 
+      // Note that the timeout error is emitted 15 frames after b emits at frame 9. Because e gets
+      // subscribed to when b emits, thus the error emits at frame 24= 15+9
       const expected = m.cold(
         "---a-----b----c--d------#",
         undefined,
