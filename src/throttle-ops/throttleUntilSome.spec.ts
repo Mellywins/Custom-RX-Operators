@@ -1,7 +1,7 @@
 import { delay, interval, map, of, tap } from "rxjs";
 import { marbles } from "rxjs-marbles/jest";
 import { throttleUntilSome } from "./throttleUntilSome";
-describe("basic", () => {
+describe("ThrottleUntilSome testsuite", () => {
   it(
     "should support marble tests without values",
     marbles((m) => {
