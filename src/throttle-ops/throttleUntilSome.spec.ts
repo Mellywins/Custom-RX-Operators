@@ -1,4 +1,5 @@
 import { delay, interval, map, of, tap } from "rxjs";
+import { TimeoutError } from "../custom-errors/TimeoutError";
 import { marbles } from "rxjs-marbles/jest";
 import { throttleUntilSome } from "./throttleUntilSome";
 describe("ThrottleUntilSome testsuite", () => {
@@ -52,6 +53,29 @@ describe("ThrottleUntilSome testsuite", () => {
               A(x): Refers to arrival from source observable
 
        */
+      m.expect(source1).toBeObservable(expected);
+    })
+  );
+
+  it(
+    "should work with more than max concurrent streams, and with a timeout. The timeout will error the stream only after the throttle has lifted on the faulty observable",
+    marbles((m) => {
+      const source1 = m
+        .cold("-abcde|", {
+          a: of("a").pipe(delay(2, m.scheduler)),
+          b: of("b").pipe(delay(7, m.scheduler)),
+          c: of("c").pipe(delay(11, m.scheduler)),
+          d: of("d").pipe(delay(13, m.scheduler)),
+          e: of("e").pipe(delay(17, m.scheduler)),
+        })
+        .pipe(throttleUntilSome(3, 15, m.scheduler));
+
+      const expected = m.cold(
+        "---a-----b----c--d------#",
+        undefined,
+        new TimeoutError()
+      );
+
       m.expect(source1).toBeObservable(expected);
     })
   );

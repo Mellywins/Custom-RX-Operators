@@ -8,15 +8,27 @@ import {
   from,
   delay,
   of,
+  SchedulerLike,
+  asyncScheduler,
+  catchError,
 } from "rxjs";
-//  takes a list of ids, size N, and for each one opens another stream.
-// Custom rxjs operator
-//  limit it such that we postpone the subscription to these other observables until some number of them have emitted at least once
-// example: streamIds().pipe(mergeMap(id => streamSomethingElse(id)), throttleUntilSome(5))
-//  throttleUntilSome(5) will open 5 streams, and then wait until at least one of them has emitted before opening the next one
+
+/**
+ * Takes an observable of observables, but ensure that there is "n" amount of subscriptions at any given time that still haven't emitted atleast once.
+ *
+ * @param n number of concurrent streams to open
+ * @param subscribersTimeout Timeout duration until the stream errors. If not provided, defaults to 3000ms
+ * @param scheduler Leave this undefined unless you're testing this operator. This is the scheduler that will be used for the timeout
+ * @returns Observable<T>
+ *
+ * @example
+ * streamIds().pipe(mergeMap(id => streamSomethingElse(id)), throttleUntilSome(5))
+ * throttleUntilSome(5) will open 5 streams, and then wait until at least one of them has emitted before opening the next one
+ */
 export function throttleUntilSome<T>(
   n: number,
-  subscribersTimeout = 3000
+  subscribersTimeout = 3000,
+  scheduler?: SchedulerLike | undefined
 ): (source$: Observable<Observable<T>>) => Observable<T> {
   return (source$: Observable<Observable<T>>) =>
     new Observable<T>((observer) => {
@@ -34,7 +46,11 @@ export function throttleUntilSome<T>(
         const stream = queue.shift();
         const replayableStream = stream!.pipe(
           share(),
-          timeout(subscribersTimeout)
+          timeout(subscribersTimeout, scheduler ? scheduler : undefined),
+          catchError((err, caught) => {
+            observer.error(err);
+            return caught;
+          })
         );
         // Notify when a subscription has emitted atleast once
         // To leave room for other subscriptions to be opened
