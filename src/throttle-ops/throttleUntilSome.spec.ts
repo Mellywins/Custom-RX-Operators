@@ -44,7 +44,14 @@ describe("ThrottleUntilSome testsuite", () => {
           e: of("e").pipe(delay(17, m.scheduler)),
         })
         .pipe(throttleUntilSome(3));
-      const expected = m.cold("---a-----b----c--d--------(e|)"); //14 c    17 d       9+17=26 e
+      const expected = m.cold("---a-----b----c--d--------(e|)");
+      /*    17 d
+              9+17=26 e ---- normally without throttling, e should finish at frame 23. But because the throttle on
+              e should lift when b emits, so it's firther delayed by [T(b)-A(e)-1], T(e)=23+(T(b)-(5+1))=26 where T(b)=9
+              T(x): Refers to emission time
+              A(x): Refers to arrival from source observable
+
+       */
       m.expect(source1).toBeObservable(expected);
     })
   );
